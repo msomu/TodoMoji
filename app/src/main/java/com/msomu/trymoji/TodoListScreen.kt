@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -109,24 +111,26 @@ fun TodoListScreen(
             Icon(imageVector = Icons.Outlined.Add, contentDescription = "Add Task")
         }
     }) {
-        TodoList(Modifier.padding(it), taskUiState.todoTasks)
-        BottomSheet(
-            Modifier.fillMaxWidth(),
-            sheetState,
-            showBottomSheet,
-            taskUiState.currentTask,
-            { taskName -> todoListViewModel.editCurrentTask(taskName) },
-            {taskName -> todoListViewModel.addTask(taskName)}) {
-            scope.launch { sheetState.hide() }.invokeOnCompletion {
-                if (!sheetState.isVisible) {
-                    showBottomSheet = false
+        Box(Modifier.padding(it)) {
+            TodoList(Modifier, taskUiState.todoTasks)
+            BottomSheet(
+                Modifier.fillMaxWidth(),
+                sheetState,
+                showBottomSheet,
+                taskUiState.currentTask,
+                { taskName -> todoListViewModel.editCurrentTask(taskName) },
+                { taskName -> todoListViewModel.addTask(taskName) }) {
+                scope.launch { sheetState.hide() }.invokeOnCompletion {
+                    if (!sheetState.isVisible) {
+                        showBottomSheet = false
+                    }
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun BottomSheet(
     modifier: Modifier,
@@ -134,7 +138,7 @@ fun BottomSheet(
     showBottomSheet: Boolean,
     currentTask: String,
     updateTask: (String) -> Unit,
-    submitTask : (String) -> Unit,
+    submitTask: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     if (showBottomSheet) {
@@ -154,20 +158,21 @@ fun BottomSheet(
                 Text(
                     text = "Add Task", modifier = Modifier.fillMaxWidth()
                 )
-                TextField(value = currentTask,
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    onValueChange = updateTask,
-                    label = { Text(text = "Task Name") },
-                    keyboardOptions = KeyboardOptions.Default,
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            submitTask(currentTask)
-                            onDismiss()
-                        }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    TextField(value = currentTask,
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        onValueChange = updateTask,
+                        label = { Text(text = "Task Name") },
+                        keyboardOptions = KeyboardOptions.Default,
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                submitTask(currentTask)
+                                onDismiss()
+                            }
+                        )
                     )
-                    )
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         imageVector = Icons.AutoMirrored.Outlined.Send,
                         contentDescription = "",
