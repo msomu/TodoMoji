@@ -1,5 +1,10 @@
 package com.msomu.trymoji
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -52,11 +57,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
@@ -112,8 +119,7 @@ fun TodoListScreen(
     }) {
         Box(Modifier.padding(it)) {
             TodoList(Modifier, taskUiState.todoTasks)
-            BottomSheet(
-                Modifier.fillMaxWidth(),
+            BottomSheet(Modifier.fillMaxWidth(),
                 sheetState,
                 showBottomSheet,
                 taskUiState.currentTask,
@@ -158,22 +164,20 @@ fun BottomSheet(
                     text = "Add Task", modifier = Modifier.fillMaxWidth()
                 )
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    TextField(value = currentTask,
+                    TextField(
+                        value = currentTask,
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                         onValueChange = updateTask,
                         label = { Text(text = "Task Name") },
                         keyboardOptions = KeyboardOptions.Default,
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                submitTask(currentTask)
-                                onDismiss()
-                            }
-                        )
+                        keyboardActions = KeyboardActions(onDone = {
+                            submitTask(currentTask)
+                            onDismiss()
+                        })
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.Send,
+                    Icon(imageVector = Icons.AutoMirrored.Outlined.Send,
                         contentDescription = "",
                         modifier = Modifier.clickable {
                             submitTask(currentTask)
@@ -232,44 +236,73 @@ fun TodoList(modifier: Modifier, todoTasks: List<TodoTask>) {
             }
         }
         items(todoTasks) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(
-                        modifier = Modifier,
-                        selected = it.status,
-                        onClick = { /*TODO*/ },
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = it.bgColor ?: Color.Gray,
-                            unselectedColor = it.bgColor ?: Color.Gray,
-                            disabledSelectedColor = it.bgColor ?: Color.Gray,
-                            disabledUnselectedColor = it.bgColor ?: Color.Gray,
-                        )
-                    )
-                    Text(
-                        text = it.task, color = Color.Black
+            val isLoading = it.syncStatus != SyncStatus.ADDED
+            val transition = rememberInfiniteTransition(label = "loading")
+            val alpha by transition.animateFloat(
+                initialValue = 0.1f, targetValue = 0.5f, animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 800), repeatMode = RepeatMode.Reverse
+                ), label = "loading"
+            )
+            Box(Modifier.height(36.dp)) {
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                            .background(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        Color.Blue.copy(alpha = alpha),
+                                        Color.Blue.copy(alpha = 0.5f),
+                                        Color.Blue.copy(alpha = alpha),
+                                    )
+                                )
+                            )
                     )
                 }
-                it.bitmap?.let { bitmap ->
-                    Box {
-                        Image(
-                            bitmap = bitmap.asImageBitmap(),
-                            contentDescription = it.emoji,
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .aspectRatio(1f)
-                                .clip(CircleShape)
-                                .background(
-                                    color = it.bgColor ?: Color.Gray
-                                )
-                                .padding(8.dp),
-                            contentScale = ContentScale.Crop
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(7f)) {
+                        RadioButton(
+                            modifier = Modifier,
+                            selected = it.status,
+                            onClick = { /*TODO*/ },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = it.bgColor ?: Color.Gray,
+                                unselectedColor = it.bgColor ?: Color.Gray,
+                                disabledSelectedColor = it.bgColor ?: Color.Gray,
+                                disabledUnselectedColor = it.bgColor ?: Color.Gray,
+                            )
                         )
+                        Text(
+                            modifier = Modifier,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            text = it.task, color = Color.Black
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    it.bitmap?.let { bitmap ->
+                        Box(modifier = Modifier.weight(1f)) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = it.emoji,
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .aspectRatio(1f)
+                                    .clip(CircleShape)
+                                    .background(
+                                        color = it.bgColor ?: Color.Gray
+                                    )
+                                    .padding(8.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
                     }
                 }
             }
