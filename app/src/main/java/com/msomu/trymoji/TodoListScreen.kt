@@ -218,7 +218,7 @@ fun TodoList(modifier: Modifier, todoTasks: List<TodoTask>) {
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "23 jun",
+                        text = "29 jun",
                         style = MaterialTheme.typography.headlineSmall,
                         color = Color.Gray
                     )
