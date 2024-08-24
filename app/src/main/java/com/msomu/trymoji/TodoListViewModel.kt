@@ -4,18 +4,34 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Rect
 import android.text.TextPaint
+import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.palette.graphics.Palette
+import com.google.ai.client.generativeai.Chat
+import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.content
+import com.google.ai.client.generativeai.type.generationConfig
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class TodoListViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(TodoListUiState())
     val uiState: StateFlow<TodoListUiState> = _uiState.asStateFlow()
+
+    private lateinit var chat: Chat
+
+    init {
+        viewModelScope.launch {
+
+        }
+    }
 
     fun addTask(taskName: String) {
         val task = TodoTask(
@@ -25,35 +41,62 @@ class TodoListViewModel : ViewModel() {
         _uiState.update { currentState ->
             todoTasks = currentState.todoTasks + task
             currentState.copy(
-                todoTasks = todoTasks, currentTask = ""
+                todoTasks = todoTasks.toMutableList(), currentTask = ""
             )
         }
-        val emoji = getEmoji(task.task)
-        emoji?.let {
-            val bitmap = emojiToBitmap(emoji, 120)
-            val colors = getPalatteColor(bitmap)
-            val currentTask = todoTasks.find { it.task == taskName }
-            currentTask?.emoji = emoji
-            currentTask?.bitmap = bitmap
-            currentTask?.pColor = colors.first
-            currentTask?.bgColor = colors.second
-            _uiState.update { currentState ->
-                currentState.copy(
-                    todoTasks = todoTasks,
+        viewModelScope.launch {
+            val emoji = getEmoji(task.task)
+            Log.d("TodoListViewModel", "Got this emoji $emoji")
+            if(emoji == null){
+                _uiState.value = _uiState.value.copy(
+                    todoTasks = _uiState.value.todoTasks.map { task ->
+                        if (task.task == taskName) {
+                            task.copy(
+                                syncStatus = SyncStatus.ADDED
+                            )
+                        } else {
+                            task
+                        }
+                    }.toMutableList()
+                )
+            }else{
+                val bitmap = emojiToBitmap(emoji, 120)
+                val colors = getPalatteColor(bitmap)
+
+                _uiState.value = _uiState.value.copy(
+                    todoTasks = _uiState.value.todoTasks.map { task ->
+                        if (task.task == taskName) {
+                            task.copy(
+                                emoji = emoji,
+                                bitmap = bitmap,
+                                pColor = colors.first,
+                                bgColor = colors.second,
+                                syncStatus = SyncStatus.ADDED
+                            )
+                        } else {
+                            task
+                        }
+                    }.toMutableList()
                 )
             }
         }
     }
 
-    private fun getPalatteColor(bitmap: Bitmap): Pair<Color?,Color?> {
+    private fun getPalatteColor(bitmap: Bitmap): Pair<Color?, Color?> {
         val palette = Palette.from(bitmap).generate()
         val pColor = palette.darkVibrantSwatch?.rgb?.let { Color(it) }
         val bgColor = palette.lightVibrantSwatch?.rgb?.let { Color(it) }
         return Pair(pColor, bgColor)
     }
 
-    private fun getEmoji(task: String): String? {
-        return null
+    private suspend fun getEmoji(task: String): String? {
+        return try {
+            val ans = chat.sendMessage(task).text
+            Log.d("SOMU","Gemini sends this: $ans")
+               ans
+        } catch (e: Exception) {
+            null
+        }
     }
 
     fun editCurrentTask(taskName: String) {
@@ -85,17 +128,17 @@ class TodoListViewModel : ViewModel() {
 }
 
 data class TodoListUiState(
-    val todoTasks: List<TodoTask> = emptyList(),
+    val todoTasks: MutableList<TodoTask> = mutableListOf(),
     val currentTask: String = ""
 )
 
 data class TodoTask(
     val task: String,
     val status: Boolean = false,
-    var emoji: String? = null,
-    var bitmap: Bitmap? = null,
-    var bgColor: Color? = null,
-    var pColor: Color? = null,
+    val emoji: String? = null,
+    val bitmap: Bitmap? = null,
+    val bgColor: Color? = null,
+    val pColor: Color? = null,
     val syncStatus: SyncStatus = SyncStatus.ADDING
 )
 
