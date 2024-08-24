@@ -10,10 +10,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.palette.graphics.Palette
 import com.google.ai.client.generativeai.Chat
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.content
-import com.google.ai.client.generativeai.type.generationConfig
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,7 +33,7 @@ class TodoListViewModel : ViewModel() {
         val task = TodoTask(
             task = taskName,
         )
-        var todoTasks = emptyList<TodoTask>()
+        var todoTasks: List<TodoTask>
         _uiState.update { currentState ->
             todoTasks = currentState.todoTasks + task
             currentState.copy(
