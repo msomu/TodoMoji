@@ -10,6 +10,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.palette.graphics.Palette
 import com.google.ai.client.generativeai.Chat
+import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.content
+import com.google.ai.client.generativeai.type.generationConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,14 +23,6 @@ class TodoListViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(TodoListUiState())
     val uiState: StateFlow<TodoListUiState> = _uiState.asStateFlow()
-
-    private lateinit var chat: Chat
-
-    init {
-        viewModelScope.launch {
-
-        }
-    }
 
     fun addTask(taskName: String) {
         val task = TodoTask(
@@ -86,13 +81,7 @@ class TodoListViewModel : ViewModel() {
     }
 
     private suspend fun getEmoji(task: String): String? {
-        return try {
-            val ans = chat.sendMessage(task).text
-            Log.d("SOMU","Gemini sends this: $ans")
-               ans
-        } catch (e: Exception) {
-            null
-        }
+        return null
     }
 
     fun editCurrentTask(taskName: String) {
